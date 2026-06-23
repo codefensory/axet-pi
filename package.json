@@ -1,7 +1,7 @@
 {
 	"name": "axet-pi",
 	"version": "0.1.0",
-	"description": "Pi extension that registers 17 axet (NTT Data AI gateway) models as a provider. Pure client of a local axet-proxy on http://localhost:54314.",
+	"description": "Pi extension that registers axet (NTT Data AI gateway) models as a provider. Pure client of a local proxy on http://localhost:54314.",
 	"type": "module",
 	"main": "axet.ts",
 	"scripts": {

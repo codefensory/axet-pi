@@ -2,13 +2,13 @@
  * axet-pi: pi extension that registers models from NTT Data's axet AI
  * gateway as a provider.
  *
- * Pure client of a local axet-proxy on http://localhost:54314 (start it
- * with `axet start` or `npm start` in axet-proxy.v0.1). The proxy handles
- * Okta auth, the axet WAF, and provider dispatch (OpenAI pass-through
- * vs. Claude/Bedrock via ClaudeProvider). The extension just registers
- * a 3-model fallback synchronously, then refreshes the live catalog
- * from the proxy on session_start. All streaming is delegated to pi's
- * built-in `openai-completions` streamer.
+ * Pure client of a local proxy on http://localhost:54314 (start it
+ * with `axet start`). The proxy handles Okta auth, the axet WAF, and
+ * provider dispatch (OpenAI pass-through vs. Claude/Bedrock via
+ * ClaudeProvider). The extension registers a 3-model fallback
+ * synchronously, then refreshes the live catalog from the proxy on
+ * session_start. All streaming is delegated to pi's built-in
+ * `openai-completions` streamer.
  *
  * Install:  pi install https://github.com/codefensory/axet-pi.git
  */
@@ -66,7 +66,7 @@ async function refreshFromProxy(pi: ExtensionAPI): Promise<RefreshResult> {
 	try {
 		res = await fetch(`${PROXY_BASE_DISPATCH}/models`, { signal: AbortSignal.timeout(3000) });
 	} catch {
-		return { ok: false, count: 0, error: `proxy unreachable at ${PROXY_BASE_DISPATCH} \u2014 run 'axet start' (or 'npm start' in axet-proxy.v0.1)` };
+		return { ok: false, count: 0, error: `proxy unreachable at ${PROXY_BASE_DISPATCH} \u2014 run 'axet start'` };
 	}
 	if (!res.ok) return { ok: false, count: 0, error: `proxy returned HTTP ${res.status}` };
 	let j: ProxyList;
