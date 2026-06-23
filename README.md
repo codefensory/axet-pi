@@ -5,7 +5,7 @@ Pi extension that registers models from the [axet](https://github.com/codefensor
 ## Requirements
 
 - [Pi](https://pi.dev) installed
-- `axet-proxy.v0.1` (or the axet CLI) running on `http://localhost:54314`
+- `axet-proxy` (or the axet CLI) running on `http://localhost:54314`
 - Already logged in once via `axet login` (token persisted to `~/.config/axet/state.json`)
 
 The extension is a **pure client** of the local proxy — it does not talk to the axet gateway directly, does not handle Okta auth, and does not require any API keys. The proxy owns all of that.
@@ -66,8 +66,6 @@ See `axet.ts` for the full implementation (~190 lines, no npm dependencies).
 The axet-proxy isn't running. In a separate terminal:
 ```bash
 axet start                    # if installed via npm
-# or
-cd axet-proxy.v0.1 && npm start   # if cloned from source
 ```
 Then run `/axet-refresh` in pi.
 
