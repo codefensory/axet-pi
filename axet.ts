@@ -21,6 +21,7 @@ const DUMMY_KEY = "axet-via-local-proxy";
 const FALLBACK_MODELS = [
 	"gpt-4o-mini",
 	"gpt-4.1-mini",
+	"gpt-5.4-2026-03-05",
 	"eu.anthropic.claude-haiku-4-5-20251001-v1:0",
 ] as const;
 
@@ -33,27 +34,39 @@ function supportsImage(id: string): boolean {
 		|| x.includes("gpt-4o") || x.includes("gpt-4-turbo") || x.includes("gpt-5");
 }
 function supportsReasoning(id: string): boolean {
-	return id.toLowerCase().includes("claude")
-		|| id.toLowerCase().includes("thinking")
-		|| id.toLowerCase().includes("reasoning");
+	const x = id.toLowerCase();
+	return x.includes("claude")
+		|| x.includes("thinking")
+		|| x.includes("reasoning")
+		|| x.includes("gpt-5");
+}
+
+function thinkingLevelMap(id: string) {
+	const x = id.toLowerCase();
+	if (x.includes("gpt-5")) return { off: null, xhigh: "high" };
+	return undefined;
 }
 
 function modelDef(id: string) {
 	const reasoning = supportsReasoning(id);
 	const claude = isClaude(id);
+	const responses = id.toLowerCase().includes("gpt-5");
 	return {
 		id,
 		name: id,
-		api: "openai-completions" as const,
+		api: (responses ? "openai-responses" : "openai-completions") as const,
 		baseUrl: claude ? PROXY_BASE_DISPATCH : PROXY_BASE_OPENAI,
 		apiKey: DUMMY_KEY,
 		headers: {},
 		reasoning,
-		...(reasoning && !claude ? { compat: { supportsReasoningEffort: true } } : {}),
+		thinkingLevelMap: thinkingLevelMap(id),
+		...(reasoning && !claude && !responses
+			? { compat: { supportsReasoningEffort: true, maxTokensField: "max_completion_tokens" } }
+			: {}),
 		input: (supportsImage(id) ? ["text", "image"] : ["text"]) as ("text" | "image")[],
 		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-		contextWindow: claude ? 200000 : 128000,
-		maxTokens: claude ? 8192 : 4096,
+		contextWindow: 200000,
+		maxTokens: 200000,
 	};
 }
 
@@ -80,8 +93,8 @@ async function refreshFromProxy(pi: ExtensionAPI): Promise<RefreshResult> {
 		return {
 			...def,
 			cost: { input: m.cost?.input ?? 0, output: m.cost?.output ?? 0, cacheRead: 0, cacheWrite: 0 },
-			contextWindow: m.limit?.context ?? def.contextWindow,
-			maxTokens: m.limit?.output ?? def.maxTokens,
+			contextWindow: Math.max(m.limit?.context ?? 0, def.contextWindow),
+			maxTokens: Math.max(m.limit?.output ?? 0, def.maxTokens),
 		};
 	});
 	if (!models.length) return { ok: false, count: 0, error: "proxy returned empty catalog" };
