@@ -30,15 +30,15 @@ Then verify:
 
 ```bash
 pi -e ~/Dev/axet-pi/axet.ts --provider axet --model "axet/gpt-4o-mini" -p "Say hi"
-pi -e ~/Dev/axet-pi/axet.ts --provider axet --model "axet/eu.anthropic.claude-sonnet-4-5-20250929-v1:0" -p "Say hi"
+pi -e ~/Dev/axet-pi/axet.ts --provider axet --model "axet/eu.anthropic.claude-sonnet-5" -p "Say hi"
 ```
 
 ## Models
 
-The exact list depends on your NTT wallet. The extension registers a **fallback** of 3 universally-available models on startup (so `pi -p` works without waiting), then replaces it with your wallet's live catalog on `session_start`:
+The exact list depends on your NTT wallet. The extension registers a **fallback** of 4 quick-start models on startup (so `pi -p` works without waiting), then replaces it with your wallet's live catalog on `session_start`:
 
-- **OpenAI models** (via `/openai/v1/*` pass-through) — GPT-4o, GPT-4.1, GPT-5 family
-- **Claude models** (via `/v1/*` provider-dispatched, translated to Bedrock InvokeModel) — `eu.anthropic.claude-*-v1:0` series
+- **OpenAI models** (via `/openai/v1/*`) — GPT-4o, GPT-4.1, GPT-5 family
+- **Claude models** (native Bedrock Converse via `/bedrock/model/{id}/converse-stream` when supported by your Pi build; otherwise legacy `/v1/*` translation) — `eu.anthropic.claude-*` series
 
 Run `/axet-refresh` in a pi session to re-fetch the catalog at any time. To see the full list from the CLI:
 
@@ -52,13 +52,19 @@ In a pi session, run `/axet-refresh` to re-fetch the model list from the proxy.
 
 ## How it works
 
-Pi's `openai-completions` API talks to the proxy on `localhost:54314`. The proxy handles:
+Pi talks only to the local proxy on `localhost:54314`.
+
+- **OpenAI models** use Pi's built-in OpenAI streamers against `/openai/v1/*`
+- **Claude models** use Pi's Bedrock Converse streamer against `/bedrock/model/{id}/converse-stream` when available in the current Pi runtime
+- If that Bedrock streamer is unavailable, Claude falls back to the proxy's legacy `/v1/*` OpenAI-compatible translation path
+
+The proxy handles:
 
 - Okta token refresh (from `~/.config/axet/state.json`)
 - The axet WAF fingerprinting (only undici `fetch` is accepted)
-- Provider dispatch: OpenAI models pass through directly, Claude models go through `ClaudeProvider` which translates OpenAI chat format ↔ Anthropic Bedrock InvokeModel
+- Provider dispatch to the underlying upstream provider
 
-See `axet.ts` for the full implementation (~190 lines, no npm dependencies).
+See `axet.ts` for the full implementation.
 
 ## Troubleshooting
 
@@ -72,8 +78,5 @@ Then run `/axet-refresh` in pi.
 **"The specified model does not exist" / "Model not found in catalog"**
 Your NTT wallet doesn't include that model. Run `/axet-refresh` to see what your wallet actually has, then pick from that list.
 
-**`/axet-refresh` resets OAuth on other providers**
-This is a side-effect of `unregisterProvider` in pi's model registry (it reloads all built-in models to restore any that were overridden). It only affects the current session — re-authenticate if needed.
-
 **pi -p with `--provider axet` immediately fails**
-The proxy is unreachable and the fallback list (3 universally-available models) also doesn't include what you asked for. Start the proxy first, or pick a fallback model (`axet/gpt-4o-mini`, `axet/gpt-4.1-mini`, `axet/eu.anthropic.claude-haiku-4-5-20251001-v1:0`).
+The proxy is unreachable and the fallback list also doesn't include what you asked for. Start the proxy first, or pick a fallback model (`axet/gpt-4o-mini`, `axet/gpt-4.1-mini`, `axet/gpt-5.4-2026-03-05`, `axet/eu.anthropic.claude-haiku-4-5-20251001-v1:0`).
