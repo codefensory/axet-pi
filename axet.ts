@@ -93,8 +93,8 @@ async function refreshFromProxy(pi: ExtensionAPI): Promise<RefreshResult> {
 		return {
 			...def,
 			cost: { input: m.cost?.input ?? 0, output: m.cost?.output ?? 0, cacheRead: 0, cacheWrite: 0 },
-			contextWindow: Math.max(m.limit?.context ?? 0, def.contextWindow),
-			maxTokens: Math.max(m.limit?.output ?? 0, def.maxTokens),
+			contextWindow: m.limit?.context ?? def.contextWindow,
+			maxTokens: m.limit?.output ?? def.maxTokens,
 		};
 	});
 	if (!models.length) return { ok: false, count: 0, error: "proxy returned empty catalog" };
